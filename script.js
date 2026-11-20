@@ -31,6 +31,7 @@ const html = document.documentElement;
 function setTheme(theme) {
   html.setAttribute("data-theme", theme);
   themeBtn.textContent = theme === "dark" ? "🌙" : "☀️";
+  themeBtn.setAttribute("aria-label", theme === "dark" ? "Switch to light theme" : "Switch to dark theme");
 }
 
 let savedTheme = "dark";
@@ -54,13 +55,17 @@ const menuBtn = document.getElementById("menuBtn");
 const nav = document.getElementById("nav");
 
 menuBtn.addEventListener("click", function () {
-  nav.classList.toggle("open");
+  const isOpen = nav.classList.toggle("open");
+  menuBtn.setAttribute("aria-expanded", String(isOpen));
+  menuBtn.setAttribute("aria-label", isOpen ? "Close menu" : "Open menu");
 });
 
 // Close the menu after tapping a link
 nav.querySelectorAll("a").forEach(function (link) {
   link.addEventListener("click", function () {
     nav.classList.remove("open");
+    menuBtn.setAttribute("aria-expanded", "false");
+    menuBtn.setAttribute("aria-label", "Open menu");
   });
 });
 
@@ -102,13 +107,21 @@ const gallery = document.getElementById("gallery");
 const lightbox = document.getElementById("lightbox");
 const lightboxImg = document.getElementById("lightboxImg");
 const lightboxCaption = document.getElementById("lightboxCaption");
+let lightboxTrigger = null;
 
 photos.forEach(function (photo) {
   const figure = document.createElement("figure");
+  figure.setAttribute("role", "button");
+  figure.setAttribute("tabindex", "0");
+  figure.setAttribute("aria-label", "Open photo: " + photo.caption);
 
   const img = document.createElement("img");
   img.src = photo.src;
   img.alt = photo.caption;
+  img.width = 300;
+  img.height = 375;
+  img.loading = "lazy";
+  img.decoding = "async";
 
   const caption = document.createElement("figcaption");
   caption.textContent = photo.caption;
@@ -116,22 +129,39 @@ photos.forEach(function (photo) {
   figure.appendChild(img);
   figure.appendChild(caption);
 
-  figure.addEventListener("click", function () {
+  function openLightbox() {
+    lightboxTrigger = figure;
     lightboxImg.src = photo.src;
     lightboxImg.alt = photo.caption;
     lightboxCaption.textContent = photo.caption;
+    document.body.style.overflow = "hidden";
     lightbox.classList.add("open");
+    lightbox.setAttribute("aria-hidden", "false");
+    document.getElementById("lightboxClose").focus();
+  }
+
+  figure.addEventListener("click", openLightbox);
+  figure.addEventListener("keydown", function (event) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openLightbox();
+    }
   });
 
   gallery.appendChild(figure);
 });
 
-// Click anywhere on the viewer (or press Escape) to close it
-lightbox.addEventListener("click", function () {
+function closeLightbox() {
   lightbox.classList.remove("open");
-});
+  lightbox.setAttribute("aria-hidden", "true");
+  document.body.style.overflow = "";
+  if (lightboxTrigger) lightboxTrigger.focus();
+}
+
+// Click anywhere on the viewer (or press Escape) to close it
+document.getElementById("lightboxClose").addEventListener("click", closeLightbox);
 document.addEventListener("keydown", function (e) {
-  if (e.key === "Escape") lightbox.classList.remove("open");
+  if (e.key === "Escape") closeLightbox();
 });
 
 /* =====================================================
